@@ -1,6 +1,7 @@
 const express = require('express')
 const mongoose = require('mongoose')
 const url = 'mongodb://localhost/genera'
+const alienRouter=require('./routers/datamed')
 const app = express()
 
 // mongoose.connect(url, {useNewUrlParser:true})
@@ -11,7 +12,6 @@ const app = express()
 // })
 app.use(express.json())
 
-const alienRouter=require('./routers/datamed')
 app.use('/datamed',alienRouter)
 
 // app.listen(9000, () => {
