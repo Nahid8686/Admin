@@ -1,24 +1,47 @@
-const express = require('express')
-const mongoose = require('mongoose')
-const url = 'mongodb://localhost/genera'
-const app = express()
+const express = require('express');
+const mongoose = require('mongoose');
+const MedData = require('./models/medicine');
 
-// mongoose.connect(url, {useNewUrlParser:true})
-// const con = mongoose.connection
+const app = express();
 
-// con.on('open',() => {
-//     console.log('connected!!')
-// })
-app.use(express.json())
+app.use(express.json());
 
-const alienRouter=require('./routers/datamed')
-app.use('/datamed',alienRouter)
+app.get('/', async(req,res)  => {
+  try{
+      const datamed = await MedData.find();
+      res.json(datamed);
 
-// app.listen(9000, () => {
-//     console.log('Server has started')
-// })
+  } catch(err){
+      res.send('ERROR'+ err);
+  }
+});
 
-const dbURI = 'mongodb+srv://nahid:Nahid@8686@GeneeraAdmin.w07kh.mongodb.net/medicine_info?retryWrites=true&w=majority';
+app.get('/:id', async(req,res)  => {
+  try{
+      const datameds = await MedData.findById(req.params.id);
+      res.json(datameds);
+
+  } catch(err){
+      res.send('ERROR'+ err);
+  }
+});
+
+
+app.post('/upload', async(req,res) => {
+  const data = new MedData({
+      name:req.body.name,
+      composition: req.body.composition,
+      usage: req.body.usage
+  });
+  try{
+      await data.save();
+      res.sendStatus(200);
+  }catch(err){
+      res.sendStatus(500);
+  }
+});
+
+const dbURI = 'mongodb+srv://admin:admin123@geneeraadmin.3btsu.mongodb.net/medicine_info?retryWrites=true&w=majority';
 mongoose.connect(dbURI, { useUnifiedTopology: true, useNewUrlParser: true })
   .then((result) => { app.listen(3000);
  console.log("Database Connected");

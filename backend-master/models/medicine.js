@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 
-const datamedSchema = new mongoose.Schema({
+const medicineSchema = new mongoose.Schema({
     name: {
         type:String,
         required: true
@@ -15,4 +15,4 @@ const datamedSchema = new mongoose.Schema({
     }
 
 })
-module.exports = mongoose.model('DataMed',datamedSchema)
+module.exports = mongoose.model('medicine',medicineSchema)

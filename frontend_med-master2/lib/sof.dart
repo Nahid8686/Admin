@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/services/server.dart';
 
 class SOF extends StatefulWidget {
   @override
@@ -9,61 +10,34 @@ class SOF extends StatefulWidget {
 var _scaffoldKey = new GlobalKey<ScaffoldState>();
 
 class _SOFState extends State<SOF> {
-  var nameTECs = <TextEditingController>[];
-  var compTECs = <TextEditingController>[];
-  var usageTECs = <TextEditingController>[];
-  var cards = <Card>[];
-
-  Card createCard() {
-    var nameController = TextEditingController();
-    var compController = TextEditingController();
-    var usageController = TextEditingController();
-    nameTECs.add(nameController);
-    compTECs.add(compController);
-    usageTECs.add(usageController);
-    return Card(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text('Medicine ${cards.length + 1}'),
-          TextField(
-              controller: nameController,
-              
-              decoration: InputDecoration(labelText: 'Medicine Name')),
-          // SizedBox(height:15),
-          TextField(
-              style:
-                  TextStyle(fontSize: 15.0, height: 5.0, color: Colors.black),
-              controller: compController,
-              decoration: InputDecoration(labelText: 'Composition')),
-          //SizedBox(height:15),
-          TextField(
-              style:
-                  TextStyle(fontSize: 20.0, height: 5.0, color: Colors.black),
-              controller: usageController,
-              decoration: InputDecoration(labelText: 'Usage')),
-          //SizedBox(height: 16,),
-        ],
-      ),
-    );
-  }
+  List<Widget> cards = [];
+  List<GlobalKey<_FormCardState>> _keys = [];
 
   @override
   void initState() {
     super.initState();
-    cards.add(createCard());
+    GlobalKey<_FormCardState> key = GlobalKey();
+    _keys.add(key);
+    cards.add(FormCard(key: key));
   }
 
-  /*_onDone() {
-    List<MedEntry> entries = [];
+  _onDone() {
+    bool done = true;
     for (int i = 0; i < cards.length; i++) {
-      var name = nameTECs[i].text;
-      var comp = compTECs[i].text;
-      var usage = usageTECs[i].text;
-      entries.add(MedEntry(name, comp, usage));
+      if (!_keys[i].currentState.isValidated()) {
+        done = false;
+        break;
+      }
     }
-    Navigator.pop(context, entries);
-  }*/
+    if (done) {
+      for (int i = 0; i < cards.length; i++) {
+        _keys[i].currentState.submit();
+      }
+      _showSuccessDialog();
+    } else {
+      _showErrorDialog();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,29 +60,110 @@ class _SOFState extends State<SOF> {
           ),
           Padding(
             padding: const EdgeInsets.all(10.0),
-            child: RaisedButton(
+            child: ElevatedButton(
               child: Text('Add New Medicine'),
-              onPressed: () => setState(() => cards.add(createCard())),
+              onPressed: () => setState(() {
+                GlobalKey<_FormCardState> key = GlobalKey();
+                _keys.add(key);
+                cards.add(FormCard(key: key));
+              }),
             ),
           )
         ],
       ),
       floatingActionButton: FloatingActionButton(
           child: Icon(Icons.done),
-          onPressed: () {
-            _showDialog();
-          },
+          onPressed: _onDone,
           backgroundColor: Colors.green),
     );
   }
 }
 
-void _showDialog() {
-  // flutter defined function
+class FormCard extends StatefulWidget {
+  const FormCard({Key key}) : super(key: key);
+
+  @override
+  _FormCardState createState() => _FormCardState();
+}
+
+class _FormCardState extends State<FormCard> {
+  final _formKey = GlobalKey<FormState>();
+  String name;
+  String composition;
+  String usage;
+
+  bool isValidated() => _formKey.currentState.validate();
+
+  void submit() {
+    if (isValidated()) {
+      _formKey.currentState.save();
+      Server.addMedicine(name, composition, usage);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text('Medicine'),
+            TextFormField(
+              decoration: InputDecoration(labelText: 'Medicine Name'),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter some text';
+                }
+                return null;
+              },
+              onSaved: (String value) {
+                this.name = value;
+              },
+            ),
+            // SizedBox(height:15),
+            TextFormField(
+              decoration: InputDecoration(labelText: 'Composition'),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter some text';
+                }
+                return null;
+              },
+              style:
+                  TextStyle(fontSize: 15.0, height: 5.0, color: Colors.black),
+              onSaved: (String value) {
+                this.composition = value;
+              },
+            ),
+            //SizedBox(height:15),
+            TextFormField(
+              decoration: InputDecoration(labelText: 'Usage'),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter some text';
+                }
+                return null;
+              },
+              style:
+                  TextStyle(fontSize: 20.0, height: 5.0, color: Colors.black),
+              onSaved: (String value) {
+                this.usage = value;
+              },
+            ),
+            //SizedBox(height: 16,),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+void _showSuccessDialog() {
   showDialog(
     context: _scaffoldKey.currentContext,
     builder: (BuildContext context) {
-      // return object of type Dialog
       return AlertDialog(
         title: new Text("Medicine entry status:",
             textAlign: TextAlign.center,
@@ -116,8 +171,33 @@ void _showDialog() {
         content: new Text("MEDICINES SUCCESSFULLY SAVED INTO DATABASE!",
             textAlign: TextAlign.center),
         actions: <Widget>[
-          // usually buttons at the bottom of the dialog
-          new FlatButton(
+          new TextButton(
+            child: new Text("OK", style: TextStyle(color: Colors.green[800])),
+            onPressed: () {
+              int count = 0;
+              Navigator.popUntil(context, (route) {
+                return count++ == 2;
+              });
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+void _showErrorDialog() {
+  showDialog(
+    context: _scaffoldKey.currentContext,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: new Text("Medicine entry status:",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.green[800])),
+        content: new Text("PLEASE ENTER DATA CORRECTLY!",
+            textAlign: TextAlign.center),
+        actions: <Widget>[
+          new TextButton(
             child: new Text("OK", style: TextStyle(color: Colors.green[800])),
             onPressed: () {
               Navigator.of(context).pop();
